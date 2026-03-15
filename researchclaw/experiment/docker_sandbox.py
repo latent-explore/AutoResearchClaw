@@ -276,6 +276,22 @@ class DockerSandbox:
         if datasets_host.is_dir():
             cmd.extend(["-v", "/opt/datasets:/workspace/data:ro"])
 
+        # Mount HuggingFace model cache (read-write for downloading)
+        hf_cache_host = Path.home() / ".cache" / "huggingface"
+        if hf_cache_host.is_dir():
+            cmd.extend(["-v", f"{hf_cache_host}:/home/researcher/.cache/huggingface"])
+            cmd.extend(["-e", f"HF_HOME=/home/researcher/.cache/huggingface"])
+        # Also check XDG cache
+        xdg_hf = Path(os.environ.get("HF_HOME", ""))
+        if xdg_hf.is_dir() and xdg_hf != hf_cache_host:
+            cmd.extend(["-v", f"{xdg_hf}:/home/researcher/.cache/huggingface"])
+            cmd.extend(["-e", f"HF_HOME=/home/researcher/.cache/huggingface"])
+
+        # Pass HF token if available (for gated model downloads)
+        hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
+        if hf_token:
+            cmd.extend(["-e", f"HF_TOKEN={hf_token}"])
+
         # GPU passthrough
         if cfg.gpu_enabled:
             if cfg.gpu_device_ids:

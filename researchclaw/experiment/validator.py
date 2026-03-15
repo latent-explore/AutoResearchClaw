@@ -185,6 +185,16 @@ COMMON_SCIENCE: frozenset[str] = frozenset(
         "yaml",
         "pyyaml",
         "rich",
+        # LLM training stack
+        "peft",
+        "trl",
+        "accelerate",
+        "bitsandbytes",
+        "sentencepiece",
+        "tokenizers",
+        "safetensors",
+        "evaluate",
+        "rouge_score",
     }
 )
 

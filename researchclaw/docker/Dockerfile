@@ -23,6 +23,17 @@ RUN python3 -m pip install \
         numpy scipy scikit-learn pandas matplotlib seaborn \
         tqdm gymnasium networkx torchdiffeq PyYAML
 
+# LLM / Transformer training stack
+RUN python3 -m pip install \
+        transformers>=4.46.0 \
+        datasets>=3.0.0 \
+        accelerate>=1.0.0 \
+        peft>=0.13.0 \
+        trl>=0.12.0 \
+        bitsandbytes>=0.44.0 \
+        sentencepiece protobuf tokenizers safetensors \
+        evaluate rouge-score
+
 # Pre-cache standard datasets for offline use
 RUN mkdir -p /opt/datasets && \
     python3 -c "import torchvision; torchvision.datasets.CIFAR10(root='/opt/datasets', train=True, download=True); torchvision.datasets.CIFAR10(root='/opt/datasets', train=False, download=True)" && \

@@ -2071,6 +2071,39 @@ def _execute_code_generation(
         except Exception:  # noqa: BLE001
             pass
 
+    # --- P2.2+P2.3: LLM training topic detection and guidance ---
+    _llm_keywords = (
+        "language model", "llm", "fine-tun", "lora", "qlora", "peft",
+        "instruction tun", "rlhf", "dpo", "sft", "alignment",
+        "transformer train", "causal lm", "chat model", "qwen", "llama",
+        "mistral", "phi-", "gemma", "pretraining", "tokeniz",
+    )
+    topic_lower = config.research.topic.lower()
+    is_llm_topic = any(kw in topic_lower for kw in _llm_keywords)
+    if is_llm_topic and config.experiment.mode == "docker":
+        try:
+            extra_guidance += _pm.block("llm_training_guidance")
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            extra_guidance += _pm.block("llm_eval_guidance")
+        except Exception:  # noqa: BLE001
+            pass
+        # P2.3: Warn if time budget is too short for LLM training
+        if time_budget_sec < 3600:
+            extra_guidance += (
+                "\n## COMPUTE BUDGET WARNING\n"
+                f"Current time_budget_sec={time_budget_sec} is likely TOO SHORT "
+                f"for LLM fine-tuning. Typical LoRA training needs 1-4 hours. "
+                f"Design a LIGHTWEIGHT experiment:\n"
+                f"- Use a small dataset (<=5000 samples)\n"
+                f"- Train for 1-3 epochs only\n"
+                f"- Use small batch size (1-2) with gradient accumulation\n"
+                f"- Use 4-bit quantization (QLoRA) to minimize memory\n"
+                f"- Limit max_seq_length to 512-1024\n"
+                f"- If possible, use a smaller model (<=7B parameters)\n"
+            )
+
     # --- Initial multi-file generation ---
     if llm is not None:
         topic = config.research.topic
