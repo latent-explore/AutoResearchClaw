@@ -421,6 +421,29 @@ def _read_prior_artifact(run_dir: Path, filename: str) -> str | None:
     return None
 
 
+_PL_ARTIFACT_MAP: dict[int, str] = {
+    8: "paper_lantern_landscape.md",
+    9: "paper_lantern_comparison.md",
+    10: "paper_lantern_deep_dive.md",
+    15: "paper_lantern_feasibility_s15.md",
+}
+
+
+def _read_paper_lantern_context(run_dir: Path, stage_num: int) -> str:
+    """Return Paper Lantern research intelligence for the given stage, or empty string."""
+    fname = _PL_ARTIFACT_MAP.get(stage_num)
+    if not fname:
+        return ""
+    content = _read_prior_artifact(run_dir, fname) or ""
+    if stage_num == 9:
+        feasibility = _read_prior_artifact(run_dir, "paper_lantern_feasibility.md") or ""
+        if feasibility:
+            content = (content + "\n\n" + feasibility).strip()
+    if not content:
+        return ""
+    return f"\n\n## Paper Lantern Research Intelligence\n{content}\n"
+
+
 def _find_prior_file(run_dir: Path, filename: str) -> Path | None:
     """Like ``_read_prior_artifact`` but returns the *Path* instead of content."""
     def _stage_sort_key(p: Path) -> tuple[str, int]:

@@ -883,8 +883,10 @@ def _execute_research_decision(
     if llm is not None:
         _pm = prompts or PromptManager()
         _overlay = _get_evolution_overlay(run_dir, "research_decision")
+        from researchclaw.pipeline._helpers import _read_paper_lantern_context  # noqa: PLC0415
+        _pl_feasibility = _read_paper_lantern_context(run_dir, 15)
         sp = _pm.for_stage("research_decision", evolution_overlay=_overlay, analysis=analysis)
-        _user = sp.user + _degenerate_hint + _diagnosis_hint + _ablation_refine_hint
+        _user = sp.user + _degenerate_hint + _diagnosis_hint + _ablation_refine_hint + _pl_feasibility
         resp = _chat_with_prompt(llm, sp.system, _user)
         decision_md = resp.content
     else:

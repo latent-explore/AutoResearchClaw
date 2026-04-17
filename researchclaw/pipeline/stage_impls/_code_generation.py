@@ -79,6 +79,9 @@ def _execute_code_generation(
     files: dict[str, str] = {}
     validation_log: list[str] = []
 
+    from researchclaw.pipeline._helpers import _read_paper_lantern_context  # noqa: PLC0415
+    _pl_deep_dive = _read_paper_lantern_context(run_dir, 10)
+
     # --- Detect available packages for sandbox ---
     _pm = prompts or PromptManager()
 
@@ -562,7 +565,7 @@ def _execute_code_generation(
             evolution_overlay=_overlay,
             topic=topic,
             metric=metric,
-            pkg_hint=pkg_hint + "\n" + compute_budget + "\n" + extra_guidance,
+            pkg_hint=pkg_hint + "\n" + compute_budget + "\n" + extra_guidance + _pl_deep_dive,
             exp_plan=exp_plan,
             metric_direction_hint=_md_hint,
         )

@@ -84,6 +84,8 @@ def _execute_experiment_design(
     preamble = _build_context_preamble(
         config, run_dir, include_goal=True, include_hypotheses=True
     )
+    from researchclaw.pipeline._helpers import _read_paper_lantern_context  # noqa: PLC0415
+    preamble += _read_paper_lantern_context(run_dir, 9)
     plan: dict[str, Any] | None = None
 
     # ── Domain detection ──────────────────────────────────────────────────

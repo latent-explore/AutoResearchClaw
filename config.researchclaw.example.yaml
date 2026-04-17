@@ -195,6 +195,11 @@ prompts:
 # Enable the MetaClaw bridge to get skill injection, PRM quality gates,
 # and continuous learning from research pipeline failures.
 # Requires MetaClaw to be running: metaclaw start --mode skills_only
+paper_lantern_bridge:
+  enabled: false
+  inject_at_stages: [8, 9, 10, 15]
+  constraints: ""  # e.g. "16GB VRAM, A100 GPU, 48-hour time budget"
+
 metaclaw_bridge:
   enabled: false
   proxy_url: "http://localhost:30000"    # MetaClaw proxy endpoint

@@ -119,6 +119,26 @@ def _execute_hypothesis_gen(
             )
     else:
         hypotheses_md = _default_hypotheses(config.research.topic)
+    # --- Paper Lantern: Inject research landscape if available ---
+    from researchclaw.pipeline._helpers import _read_paper_lantern_context  # noqa: PLC0415
+    pl_context = _read_paper_lantern_context(run_dir, 8)
+    if pl_context and llm is not None:
+        logger.info("Applying Paper Lantern landscape to hypotheses")
+        try:
+            resp = llm.chat(
+                [{"role": "user", "content": (
+                    f"Refine the following hypotheses using the research landscape survey below. "
+                    f"Ensure hypotheses address real gaps and use proven approaches where appropriate.\n\n"
+                    f"## Current Hypotheses\n{hypotheses_md}\n"
+                    f"{pl_context}\n"
+                    f"Produce improved hypotheses that are grounded in the research landscape."
+                )}],
+                max_tokens=4096,
+            )
+            hypotheses_md = resp.content
+        except Exception:
+            logger.debug("Paper Lantern hypothesis refinement failed (non-blocking)")
+
     # --- HITL: Read human guidance if available ---
     guidance_file = stage_dir / "hitl_guidance.md"
     if guidance_file.exists():

@@ -123,8 +123,68 @@ artifacts/<run-id>/
 - **Sandbox execution failure**: Verify `experiment.sandbox.python_path` exists and has numpy installed
 - **Gate rejection**: Use `--auto-approve` or manually approve at stages 5, 9, 20
 
+### Paper Lantern Integration (Optional)
+
+If `paper_lantern_bridge.enabled: true` in config and the Paper Lantern MCP tool is available, enrich the pipeline at key stages by calling Paper Lantern and writing result artifacts to the run directory **before** the pipeline reaches each stage.
+
+Run the pipeline **without** `--auto-approve` so you can intercept gate stages:
+
+```bash
+researchclaw run --topic "..." --config config.arc.yaml --output artifacts/my-run
+```
+
+#### Pre-pipeline (before `researchclaw run`)
+
+Call `explore_approaches` to survey the research landscape:
+- Query: the research topic
+- Constraints: value from `paper_lantern_bridge.constraints` in config
+- Write the full response to `artifacts/my-run/paper_lantern_landscape.md`
+
+The pipeline picks this up automatically at Stage 8 (Hypothesis Generation).
+
+#### At Stage 9 Gate (EXPERIMENT_DESIGN)
+
+When the pipeline pauses at the Stage 9 gate:
+1. Read `hypotheses.md` from the run artifacts — extract top 2-3 proposed approaches
+2. Call `compare_approaches` with those names, topic as context, hardware constraints
+3. Read `exp_plan.yaml` from the run artifacts
+4. Call `check_feasibility` with the experiment approach, constraints, and topic context
+5. Write `compare_approaches` result to `artifacts/my-run/paper_lantern_comparison.md`
+6. Write `check_feasibility` result to `artifacts/my-run/paper_lantern_feasibility.md`
+7. Use the Paper Lantern verdict to inform gate decision:
+   - **GO** → approve the gate
+   - **PROTOTYPE** → approve with a note, or ask user
+   - **RECONSIDER** → reject the gate (rolls back to Stage 8 to revise hypotheses)
+
+#### Between Stage 9 and Stage 10 (before code generation)
+
+After approving the Stage 9 gate:
+1. Read `exp_plan.yaml` — identify the primary proposed method
+2. Call `deep_dive` on that method with topic context and hardware constraints
+3. Write result to `artifacts/my-run/paper_lantern_deep_dive.md`
+
+The pipeline injects this implementation guide into Stage 10 (Code Generation).
+
+#### After Stage 15 (Research Decision)
+
+After Stage 15 completes:
+1. Read `decision_structured.json` from the artifacts
+2. If `decision` is `"pivot"`:
+   - Call `check_feasibility` on the proposed new direction
+   - Write result to `artifacts/my-run/paper_lantern_feasibility_s15.md`
+   - This is injected in the next Stage 15 iteration
+
+#### Writing artifact files
+
+```bash
+# Example: save Paper Lantern landscape result
+cat > artifacts/my-run/paper_lantern_landscape.md << 'EOF'
+<paper lantern response here>
+EOF
+```
+
 ## Tools Required
 
 - File read/write (for config and artifacts)
 - Bash (for CLI execution)
-- No external MCP servers required for basic operation
+- Paper Lantern MCP (`mcp__claude_ai_Paper_Lantern__*`) for research intelligence (optional)

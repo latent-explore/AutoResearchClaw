@@ -691,6 +691,15 @@ class CalendarConfig:
 
 
 @dataclass(frozen=True)
+class PaperLanternConfig:
+    """Paper Lantern MCP bridge — enriches pipeline stages with research intelligence."""
+
+    enabled: bool = False
+    inject_at_stages: tuple[int, ...] = (8, 9, 10, 15)
+    constraints: str = ""
+
+
+@dataclass(frozen=True)
 class RCConfig:
     project: ProjectConfig
     research: ResearchConfig
@@ -724,6 +733,7 @@ class RCConfig:
         default_factory=QualityAssessorConfig
     )
     calendar: CalendarConfig = field(default_factory=CalendarConfig)
+    paper_lantern_bridge: PaperLanternConfig = field(default_factory=PaperLanternConfig)
     # HITL Co-Pilot System
     hitl: object = field(default=None)  # HITLConfig (lazy import avoids circular dep)
 
@@ -770,6 +780,7 @@ class RCConfig:
         copilot_data = data.get("copilot") or {}
         quality_assessor_data = data.get("quality_assessor") or {}
         calendar_data = data.get("calendar") or {}
+        paper_lantern_data = data.get("paper_lantern_bridge") or {}
         hitl_data = data.get("hitl") or {}
 
         return cls(
@@ -857,6 +868,13 @@ class RCConfig:
             copilot=_parse_copilot_config(copilot_data),
             quality_assessor=_parse_quality_assessor_config(quality_assessor_data),
             calendar=_parse_calendar_config(calendar_data),
+            paper_lantern_bridge=PaperLanternConfig(
+                enabled=bool(paper_lantern_data.get("enabled", False)),
+                inject_at_stages=tuple(
+                    int(s) for s in paper_lantern_data.get("inject_at_stages", (8, 9, 10, 15))
+                ),
+                constraints=str(paper_lantern_data.get("constraints", "")),
+            ),
             hitl=_parse_hitl_config(hitl_data),
         )
 
