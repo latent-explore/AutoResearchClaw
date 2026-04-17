@@ -1,277 +1,277 @@
 # Tester Feedback Analysis — Claude Code Prompt
 
-> **用途：** 在 Claude Code agent 窗口中读取本文件，agent 将自动完成「测试反馈分析 → Bug 修复文档生成」的全流程。
+> **Purpose:** Read this file in a Claude Code agent window and the agent will automatically complete the full workflow of "test feedback analysis → bug fix document generation".
 >
-> **使用方式：** 打开 Claude Code，输入：
+> **Usage:** Open Claude Code and enter:
 > ```
-> 请读取 researchclaw/feedback/FEEDBACK_ANALYSIS_PROMPT.md，然后按照指示处理 feedback_inbox/ 目录下的所有测试反馈。
+> Please read researchclaw/feedback/FEEDBACK_ANALYSIS_PROMPT.md, then process all test feedback in the feedback_inbox/ directory as instructed.
 > ```
 
 ---
 
-## 你的角色
+## Your Role
 
-你是 AutoResearchClaw 项目的高级 QA 工程师和代码架构师。你需要分析来自不同学科领域测试者的反馈，与当前 Pipeline 代码进行对比，生成一份结构化的 **Bug 修复文档**。
-
----
-
-## 背景
-
-AutoResearchClaw 是一个 23 阶段的全自动学术研究 Pipeline（从选题到论文生成）。我们招募了来自不同学科的测试者运行 Pipeline，他们提交了运行反馈和交付物。你需要帮我把这些反馈转化为可执行的 Bug 修复方案。
-
-### ⚠️ 关键认知：测试者使用的可能是旧版本
-
-**这一点极其重要，必须贯穿你的整个分析过程：**
-
-测试者运行 Pipeline 的时间点各不相同，他们使用的代码版本很可能**不是当前主分支的最新版本**。我们的代码在快速迭代中，很多问题在他们测试之后可能已经被修复、部分修复或因架构调整而不再适用。
-
-因此你必须：
-- **不要无条件信任反馈中描述的 Bug** —— 它可能已经不存在了
-- **对每个问题都要在当前代码中实际验证** —— 读代码确认，而不是仅凭反馈文字就下结论
-- **保持批判性思维** —— 测试者的问题描述可能基于旧的代码行为、旧的配置格式、旧的依赖版本
-- **如果反馈中提到的函数/类/文件已被重构或删除，直接标记为「已修复/架构已变更」**
-- **如果能从压缩包中识别出测试者使用的版本（如 git hash、版本号、时间戳），请记录下来，有助于判断问题时效性**
+You are a senior QA engineer and code architect for the AutoResearchClaw project. You need to analyze feedback from testers across different academic disciplines, compare it against the current pipeline code, and generate a structured **Bug Fix Document**.
 
 ---
 
-## 输入：反馈目录结构
+## Background
 
-所有测试反馈存放在 `feedback_inbox/` 目录下（如果实际路径不同，用户会告知）。结构如下：
+AutoResearchClaw is a 23-stage fully automated academic research pipeline (from topic selection to paper generation). We recruited testers from different disciplines to run the pipeline, and they submitted run feedback and deliverables. Your job is to convert that feedback into actionable bug fix plans.
+
+### ⚠️ Critical Awareness: Testers May Be Using an Older Version
+
+**This point is extremely important and must inform your entire analysis process:**
+
+Testers ran the pipeline at different points in time, and the code version they used is very likely **not the latest version on the current main branch**. Our codebase is iterating rapidly, and many issues may have already been fixed, partially fixed, or made irrelevant by architectural changes since their testing.
+
+Therefore you must:
+- **Do not unconditionally trust bugs described in feedback** — they may no longer exist
+- **Verify every issue against the current code** — read the code to confirm, do not draw conclusions from feedback text alone
+- **Maintain critical thinking** — testers' problem descriptions may be based on old code behavior, old config formats, or old dependency versions
+- **If a function/class/file mentioned in feedback has been refactored or deleted, mark it as "Fixed / Architecture Changed"**
+- **If you can identify the version the tester used from the archive (e.g. git hash, version number, timestamp), record it — it helps assess whether the issue is still relevant**
+
+---
+
+## Input: Feedback Directory Structure
+
+All test feedback is stored in the `feedback_inbox/` directory (if the actual path differs, the user will inform you). Structure:
 
 ```
 feedback_inbox/
 ├── tester_alice/
-│   ├── 反馈文档.md              # 反馈文档（可能是 .md / .txt / .docx / .pdf）
-│   ├── screenshots/             # 截图文件夹（可选）
+│   ├── feedback.md              # Feedback document (may be .md / .txt / .docx / .pdf)
+│   ├── screenshots/             # Screenshot folder (optional)
 │   │   ├── error1.png
 │   │   └── stage12_fail.png
-│   └── artifacts.zip            # Pipeline 交付物压缩包（论文、代码、各阶段输出）
+│   └── artifacts.zip            # Pipeline deliverables archive (paper, code, stage outputs)
 ├── tester_bob/
 │   ├── feedback.md
 │   └── deliverables.tar.gz
 ├── tester_charlie/
-│   └── 测试报告.txt
+│   └── test_report.txt
 └── ...
 ```
 
-**注意：**
-- 每个子文件夹 = 一个测试者
-- 反馈文档命名不固定，但通常是唯一的文本文件
-- 压缩包内是完整的 Pipeline 运行输出目录
-- 有些测试者可能只有反馈文档没有压缩包，反之亦然
-- 截图可能散落在子文件夹内或专门的 screenshots/ 目录里
+**Notes:**
+- Each subfolder = one tester
+- Feedback document naming is not fixed, but is usually the only text file
+- The archive contains the complete pipeline run output directory
+- Some testers may only have a feedback document without an archive, and vice versa
+- Screenshots may be scattered in subfolders or in a dedicated screenshots/ directory
 
 ---
 
-## 你的工作流程
+## Your Workflow
 
-### 第一步：扫描并读取所有反馈
+### Step 1: Scan and Read All Feedback
 
-1. 列出 `feedback_inbox/` 下所有子目录
-2. 对每个子目录：
-   - 找到反馈文档并读取全文
-   - 如有截图，记录文件名（用于在报告中引用）
-   - 如有压缩包，列出内容目录（不必完整解压），重点关注：
-     - 错误日志（含 error / fail / traceback 的文件）
-     - 阶段输出 JSON（stage_*.json / checkpoint.json）
-     - Pipeline 元数据（run_meta.json / pipeline_summary.json）
-   - 如果压缩包中有明显的报错信息，提取关键片段
+1. List all subdirectories under `feedback_inbox/`
+2. For each subdirectory:
+   - Find the feedback document and read the full text
+   - If screenshots exist, record filenames (for reference in the report)
+   - If an archive exists, list the directory contents (no need to fully extract), focusing on:
+     - Error logs (files containing error / fail / traceback)
+     - Stage output JSON (stage_*.json / checkpoint.json)
+     - Pipeline metadata (run_meta.json / pipeline_summary.json)
+   - If the archive contains obvious error messages, extract key excerpts
 
-### 第二步：理解当前 Pipeline 架构
+### Step 2: Understand the Current Pipeline Architecture
 
-在分析之前，你需要了解当前代码的最新状态。请阅读以下关键文件：
+Before analyzing, you need to understand the latest state of the codebase. Please read these key files:
 
-- `researchclaw/pipeline/stages.py` — 23 阶段定义和状态机
-- `researchclaw/pipeline/executor.py` — 核心执行逻辑（重点关注各阶段的 execute 函数）
-- `researchclaw/pipeline/runner.py` — Pipeline 运行入口
-- `researchclaw/config.py` — 配置结构
-- `researchclaw/llm/client.py` — LLM 调用逻辑
-- `researchclaw/literature/search.py` — 文献搜索
-- `researchclaw/experiment/docker_sandbox.py` — Docker 沙箱执行
-- `researchclaw/pipeline/code_agent.py` — 代码生成 Agent
-- `researchclaw/templates/converter.py` — LaTeX 转换
-- `researchclaw/prompts.py` — Prompt 模板
+- `researchclaw/pipeline/stages.py` — 23-stage definitions and state machine
+- `researchclaw/pipeline/executor.py` — core execution logic (focus on each stage's execute function)
+- `researchclaw/pipeline/runner.py` — pipeline run entry point
+- `researchclaw/config.py` — configuration structure
+- `researchclaw/llm/client.py` — LLM call logic
+- `researchclaw/literature/search.py` — literature search
+- `researchclaw/experiment/docker_sandbox.py` — Docker sandbox execution
+- `researchclaw/pipeline/code_agent.py` — code generation agent
+- `researchclaw/templates/converter.py` — LaTeX conversion
+- `researchclaw/prompts.py` — prompt templates
 
-**不需要逐行阅读，但要对整体架构和各模块职责有清晰认识。**
+**You don't need to read line by line, but you should have a clear understanding of the overall architecture and the responsibilities of each module.**
 
-### 第三步：逐个分析反馈
+### Step 3: Analyze Each Feedback Item
 
-对每个测试者的反馈，执行以下分析：
+For each tester's feedback, perform the following analysis:
 
-#### 3a. 提取问题列表
+#### 3a. Extract Issue List
 
-从反馈文本中提取每一个独立的问题/Bug/需求，包括：
-- 明确报告的 Bug（"XX 阶段报错了"）
-- 模糊描述的问题（"效果不太好"、"生成的论文有问题"）
-- 功能需求（"希望能支持 XX"）
-- UX 问题（"不知道怎么配置"）
-- 性能问题（"跑了 3 小时还没完"）
+Extract every individual issue/bug/request from the feedback text, including:
+- Clearly reported bugs ("Stage XX threw an error")
+- Vaguely described problems ("the output isn't great", "the generated paper has issues")
+- Feature requests ("I'd like support for XX")
+- UX issues ("I didn't know how to configure it")
+- Performance issues ("it ran for 3 hours and still wasn't done")
 
-#### 3b. 对比代码进行验证
+#### 3b. Verify Against the Code
 
-对每个提取的问题：
+For each extracted issue:
 
-1. **定位相关代码** — 根据问题描述和涉及的 Pipeline 阶段，找到对应的源代码文件和函数
-2. **判断是否仍然存在** — 阅读当前代码，判断这个 Bug 是否已被修复（主分支在快速迭代，部分问题可能已解决）
-3. **分析根因** — 如果 Bug 仍存在，分析具体的根本原因（不是表面现象）
-4. **评估价值** — 判断这个问题是否值得修复：
-   - **值得修复：** 影响 Pipeline 正常运行、影响论文质量、多人反馈的共性问题
-   - **暂缓处理：** 边缘场景、个别配置问题、已有 workaround
-   - **不处理：** 设计如此、超出范围的需求、无法复现
+1. **Locate relevant code** — based on the problem description and the pipeline stage involved, find the corresponding source file and function
+2. **Determine if it still exists** — read the current code and determine whether this bug has been fixed (the main branch is iterating fast; some issues may already be resolved)
+3. **Analyze root cause** — if the bug still exists, analyze the specific root cause (not the surface symptom)
+4. **Assess value** — determine whether this issue is worth fixing:
+   - **Worth fixing:** affects normal pipeline operation, affects paper quality, common issue reported by multiple testers
+   - **Defer:** edge cases, individual configuration issues, issues with an existing workaround
+   - **Won't fix:** working as designed, out-of-scope requests, cannot reproduce
 
-#### 3c. 生成修复方案
+#### 3c. Generate Fix Plan
 
-对每个确认的 Bug，给出：
-- **具体是什么 Bug** — 一句话描述
-- **根因在哪里** — 哪个文件、哪个函数、什么逻辑有问题
-- **怎么修复** — 具体的代码修改方案（不需要写完整代码，但要足够具体，比如"在 executor.py 的 `_run_experiment` 函数中，第 XX 行的异常处理需要增加 TimeoutError 的 catch"）
-- **修复后的预期行为** — 修好后应该是什么样的
+For each confirmed bug, provide:
+- **What the bug is** — one-sentence description
+- **Where the root cause is** — which file, which function, what logic is broken
+- **How to fix it** — specific code change plan (no need to write complete code, but be specific enough, e.g. "in the `_run_experiment` function in executor.py, the exception handler on line XX needs to add a catch for TimeoutError")
+- **Expected behavior after fix** — what it should look like when fixed
 
-### 第四步：生成 Bug 修复文档
+### Step 4: Generate Bug Fix Document
 
-将所有分析结果汇总为一份 Markdown 文档，保存到 `docs/BUG_FIX_DOCUMENT_<日期>.md`。
+Consolidate all analysis results into a single Markdown document and save it to `docs/BUG_FIX_DOCUMENT_<date>.md`.
 
 ---
 
-## 输出文档格式
+## Output Document Format
 
 ```markdown
 # Bug Fix Document — AutoResearchClaw Pipeline
 
-> 生成日期：YYYY-MM-DD
-> 反馈来源：N 位测试者
-> 总计问题：N 个
+> Generated: YYYY-MM-DD
+> Feedback sources: N testers
+> Total issues: N
 
-## 📊 总览
+## 📊 Overview
 
-| 分类 | 数量 |
-|------|------|
-| 🔴 确认的 Bug（需修复） | N |
-| 🟢 已修复（无需处理） | N |
-| 🔵 功能需求 | N |
-| 🟡 需要更多信息 | N |
-| ⚪ 不处理 | N |
+| Category | Count |
+|----------|-------|
+| 🔴 Confirmed Bugs (needs fix) | N |
+| 🟢 Already Fixed (no action needed) | N |
+| 🔵 Feature Requests | N |
+| 🟡 Needs More Information | N |
+| ⚪ Won't Fix | N |
 
-## 🔥 修复优先级
+## 🔥 Fix Priority
 
-| 优先级 | ID | 问题 | 阶段 | 涉及文件 |
-|--------|----|------|------|----------|
+| Priority | ID | Issue | Stage | Files Involved |
+|----------|----|-------|-------|----------------|
 | 🔴 CRITICAL | xxx-001 | ... | ... | ... |
 | 🟠 HIGH | xxx-002 | ... | ... | ... |
 | ... | ... | ... | ... | ... |
 
 ---
 
-## 确认的 Bug — 详细修复方案
+## Confirmed Bugs — Detailed Fix Plans
 
-### 🔴 `xxx-001` — Bug 标题
+### 🔴 `xxx-001` — Bug Title
 
-| 字段 | 内容 |
-|------|------|
-| **严重程度** | CRITICAL / HIGH / MEDIUM / LOW |
-| **所属阶段** | STAGE_NAME |
-| **报告者** | tester_id |
+| Field | Content |
+|-------|---------|
+| **Severity** | CRITICAL / HIGH / MEDIUM / LOW |
+| **Pipeline Stage** | STAGE_NAME |
+| **Reported by** | tester_id |
 
-**问题描述：**
+**Problem Description:**
 xxx
 
-**根因分析：**
-xxx（具体到文件名、函数名、行号、逻辑问题）
+**Root Cause Analysis:**
+xxx (specific file name, function name, line number, logic issue)
 
-**涉及文件：**
+**Files Involved:**
 - `researchclaw/xxx/yyy.py`
 
-**修复方案：**
-xxx（具体的修改步骤，另一台机器上的 agent 能直接按此执行）
+**Fix Plan:**
+xxx (specific steps, detailed enough for another agent to execute directly)
 
-**修复后预期行为：**
+**Expected Behavior After Fix:**
 xxx
 
 <details>
-<summary>原始反馈证据</summary>
-（测试者的原话和截图引用）
+<summary>Original Feedback Evidence</summary>
+(Tester's original words and screenshot references)
 </details>
 
 ---
 
-（重复以上格式，直到所有确认的 Bug 都写完）
+(Repeat the above format for all confirmed bugs)
 
 ---
 
-## 功能需求
+## Feature Requests
 
-### 🔵 `xxx-010` — 需求标题
-- 报告者：xxx
-- 描述：xxx
-- 建议：xxx
+### 🔵 `xxx-010` — Request Title
+- Reported by: xxx
+- Description: xxx
+- Suggestion: xxx
 
 ---
 
-## 已修复（无需处理）
+## Already Fixed (No Action Needed)
 
-| ID | 问题 | 报告者 | 已修复原因 |
-|----|------|--------|-----------|
+| ID | Issue | Reporter | Why Fixed |
+|----|-------|----------|-----------|
 | ... | ... | ... | ... |
 
 ---
 
-## 附录：按测试者分组
+## Appendix: Grouped by Tester
 
-### 测试者：`tester_alice`
-- 学科/领域：xxx（如果能从反馈中推断）
-- 总计问题：N
-- 确认 Bug：N
-- 已修复：N
+### Tester: `tester_alice`
+- Discipline/Domain: xxx (if inferable from feedback)
+- Total issues: N
+- Confirmed bugs: N
+- Already fixed: N
 
-| ID | 问题 | 状态 | 严重程度 |
-|----|------|------|---------|
+| ID | Issue | Status | Severity |
+|----|-------|--------|----------|
 | ... | ... | ... | ... |
 ```
 
 ---
 
-## 重要原则
+## Key Principles
 
-1. **代码为准：** 判断 Bug 是否存在时，以当前代码为准，不要猜测。实际读代码确认。
-2. **具体到位：** 修复方案要具体到文件、函数、逻辑，让另一个 agent 能直接执行。不要只说"需要优化"这种模糊描述。
-3. **合并去重：** 多个测试者报告同一个问题时，合并为一条，注明所有报告者。
-4. **区分表里：** 测试者描述的可能是表面现象，你需要找到深层根因。
-5. **务实判断：** 不是所有反馈都值得处理。有些是配置问题、有些是预期行为、有些修复代价远大于收益 —— 这些需要你做出判断。
-6. **保留证据：** 每个问题都保留测试者的原始描述作为证据。
-7. **中文输出：** 文档用中文书写（技术术语、代码、文件名保持英文）。
-
----
-
-## 特殊情况处理
-
-- **反馈文档是英文：** 正常分析，输出仍用中文。
-- **没有压缩包只有反馈文档：** 仅基于反馈文本分析，标注"无法验证运行产物"。
-- **没有反馈文档只有压缩包：** 从压缩包的错误日志和阶段输出中推断问题。
-- **反馈内容模糊难以定位：** 归类为"需要更多信息"，说明缺少什么信息。
-- **反馈涉及已删除/重构的功能：** 标记为"已修复"或"架构已变更"。
+1. **Code is the source of truth:** When determining whether a bug exists, go by the current code. Don't guess. Actually read the code to confirm.
+2. **Be specific:** Fix plans must be specific down to file, function, and logic — specific enough for another agent to execute directly. Don't use vague descriptions like "needs improvement".
+3. **Merge duplicates:** When multiple testers report the same issue, merge into one entry and note all reporters.
+4. **Distinguish symptoms from causes:** Testers describe surface symptoms; you need to find the underlying root cause.
+5. **Be pragmatic:** Not all feedback is worth acting on. Some are configuration issues, some are expected behavior, some have a fix cost far exceeding the benefit — these require your judgment.
+6. **Preserve evidence:** Retain each tester's original description as evidence for every issue.
+7. **English output:** Write the document in English (technical terms, code, and filenames stay in English).
 
 ---
 
-## 第五步：提交并推送
+## Special Cases
 
-分析完成、文档生成后，你需要完成以下操作：
+- **Feedback document is in English:** Analyze normally, output in English.
+- **No archive, only feedback document:** Analyze based on feedback text only; note "unable to verify run artifacts".
+- **No feedback document, only archive:** Infer issues from error logs and stage outputs in the archive.
+- **Feedback is vague and hard to locate:** Categorize as "Needs More Information"; explain what information is missing.
+- **Feedback involves deleted/refactored functionality:** Mark as "Fixed" or "Architecture Changed".
 
-1. **切换到主分支：** `git checkout main`
-2. **将 Bug 修复文档提交到 `docs/` 目录：**
-   - 文件命名格式：`docs/BUG_FIX_DOCUMENT_<YYYYMMDD>.md`
-   - 如果当天已有同名文档，加序号：`docs/BUG_FIX_DOCUMENT_<YYYYMMDD>_02.md`
-3. **提交并推送到远程主分支：**
+---
+
+## Step 5: Commit and Push
+
+Once analysis is complete and the document is generated, complete the following:
+
+1. **Switch to main branch:** `git checkout main`
+2. **Commit the bug fix document to the `docs/` directory:**
+   - Filename format: `docs/BUG_FIX_DOCUMENT_<YYYYMMDD>.md`
+   - If a file with the same name already exists for the day, add a sequence number: `docs/BUG_FIX_DOCUMENT_<YYYYMMDD>_02.md`
+3. **Commit and push to the remote main branch:**
    ```
    git add docs/BUG_FIX_DOCUMENT_<date>.md
    git commit -m "docs: add bug fix document from tester feedback (<date>)"
    git push origin main
    ```
-4. **告知用户：** 推送完成后，告知用户文档路径和 Bug 摘要，以便在其他机器上拉取并执行修复。
+4. **Notify the user:** After pushing, inform the user of the document path and bug summary so they can pull it on other machines and execute the fixes.
 
-**重要：** 提交时不要加 Co-Authored-By，commit 作者只能是用户自己。
+**Important:** Do not add Co-Authored-By to the commit; the commit author should be the user only.
 
 ---
 
-## 开始
+## Begin
 
-现在请扫描 feedback inbox 目录，开始工作。
+Please scan the feedback inbox directory and start working.

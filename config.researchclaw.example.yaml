@@ -57,10 +57,10 @@ security:
   redact_sensitive_logs: true
 
 experiment:
-  # ★ mode 决定实验结果的真实性
-  #   "sandbox"   — 在本地沙盒中实际执行生成的 Python 代码，产出真实实验数据
-  #   "docker"    — 在 Docker 容器中执行，支持 GPU 直通、依赖自动安装、内存隔离
-  #   "simulated" — 不执行代码，使用公式生成假数据（仅用于框架开发调试，不应用于论文生成）
+  # ★ mode determines the authenticity of experiment results
+  #   "sandbox"   — executes generated Python code locally; produces real experiment data
+  #   "docker"    — executes inside a Docker container; supports GPU passthrough, auto dependency install, memory isolation
+  #   "simulated" — does not execute code; uses formulas to generate synthetic data (for framework dev/debug only, not for paper generation)
   mode: "sandbox"
   time_budget_sec: 300
   max_iterations: 10

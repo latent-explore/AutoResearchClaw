@@ -1,4 +1,4 @@
-"""测试 Anthropic Messages 兼容 API 是否可用。"""
+"""Tests whether the Anthropic Messages-compatible API is available."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ def test_anthropic_api() -> None:
 
     assert message.get("type") == "message"
     assert len(content) > 0
-    print("\n✅ API 可用!")
+    print("\n✅ API is available!")
 
 
 if __name__ == "__main__":
